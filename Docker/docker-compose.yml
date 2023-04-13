@@ -1,0 +1,33 @@
+version: '3'
+services:
+  proxyC:
+    image: jwilder/nginx-proxy
+    container_name: proxyC
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    restart: always
+    privileged: true
+    networks:
+      - local_containers      
+  easybroker:
+    image: richarvey/nginx-php-fpm:2.1.2
+    container_name: easybroker
+    dns:
+      - 8.8.8.8    
+    volumes:
+      - ../.:/var/www/html    
+    environment:
+      - SKIP_COMPOSER=1
+      - VIRTUAL_HOST=easybroker.test
+    networks:
+      - local_containers
+    restart: always
+    command: bash -c 'echo -e "zend_extension=xdebug.so\nxdebug.mode=coverage" >> /usr/local/etc/php/conf.d/xdebug.ini && composer install && vendor/bin/phpunit --coverage-html ./coverage --coverage-filter ./src && /start.sh'
+    depends_on:
+      - proxyC
+networks:
+  local_containers:
+    name: local_containers
